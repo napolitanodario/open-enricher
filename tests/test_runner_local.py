@@ -25,7 +25,7 @@ def test_cli_list_variants(capsys: pytest.CaptureFixture[str]) -> None:
     assert "10-claim-check" not in out
 
 
-def test_run_one_experiment_evaluates_with_cursor(
+def test_run_one_experiment_evaluates_with_codex(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Each experiment reports both independent assessments."""
@@ -84,7 +84,7 @@ def test_run_one_experiment_evaluates_with_cursor(
 
     assert summary["status"] == "ok"
     assert seen["videos"] == ["Suits.S01E02.mkv"]
-    assert seen["kwargs"]["provider_name"] == "cursor"
+    assert seen["kwargs"]["provider_name"] == "codex"
     assert seen["kwargs"]["experiment_id"] == "01-scene-context"
     assert seen["kwargs"]["with_synopsis"] is True
     text = (runs / "01-scene-context" / "EXPERIMENT.md").read_text(encoding="utf-8")
@@ -93,6 +93,11 @@ def test_run_one_experiment_evaluates_with_cursor(
     assert calls["n"] == 1
     device_path = runs / "01-scene-context" / "performance" / "device.json"
     assert json.loads(device_path.read_text(encoding="utf-8")) == device
+
+    seen.clear()
+    deferred = run_one_experiment(variant, videos=["Suits.S01E02.mkv"], skip_done=False, defer_evaluation=True)
+    assert deferred["status"] == "metadata_complete"
+    assert deferred["evaluation"] == [] and not seen
 
 
 def test_build_parser_has_local_flags() -> None:

@@ -84,6 +84,14 @@ def test_truncated_visual_json_is_regenerated_on_the_same_clip(tmp_path, monkeyp
     assert segments._clip_generation(*args, require_visual_json=True) == complete
     assert generated[0][0] == generated[1][0]
     assert generated[0][1] != generated[1][1]
-    replies = iter([incomplete, incomplete])
-    with pytest.raises(ValueError, match="after retry"):
+    replies = iter([incomplete, incomplete, "White lettering scrolls over black.", "white letters\nblack screen",
+                    "scrolling upward", "stationary shot", "black and white", "NONE"])
+    import json
+    record = json.loads(segments._clip_generation(*args, require_visual_json=True))
+    assert record["description"] == "White lettering scrolls over black."
+    assert record["subjects_and_objects"] == ["white letters", "black screen"]
+    assert record["on_screen_text"] == []
+    assert len({clip for clip, _ in generated[-8:]}) == 1
+    replies = iter([incomplete, incomplete, "NONE"])
+    with pytest.raises(ValueError, match="Missing visual description"):
         segments._clip_generation(*args, require_visual_json=True)

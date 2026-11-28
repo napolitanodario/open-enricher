@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Mapping, Tuple
 
 from open_enricher.evaluation import criteria as C
+from open_enricher.evaluation.providers import DEFAULT_PROVIDER
 
 
 def title_from_filename(video_filename: str) -> str:
@@ -82,7 +83,7 @@ def build_report(
     profile_file: str,
     llm_payload: Dict[str, Any],
     uses_synopsis: bool = True,
-    provider: str = "cursor",
+    provider: str = DEFAULT_PROVIDER,
     model: str | None = None,
 ) -> Dict[str, Any]:
     """
@@ -178,7 +179,7 @@ def failed_report(
     profile_file: str | None,
     error: str,
     uses_synopsis: bool = True,
-    provider: str = "cursor",
+    provider: str = DEFAULT_PROVIDER,
     model: str | None = None,
 ) -> Dict[str, Any]:
     """

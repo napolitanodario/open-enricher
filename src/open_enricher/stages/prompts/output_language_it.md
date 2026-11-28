@@ -1,0 +1,1 @@
+Scrivi ogni riassunto, descrizione, tag e altro testo libero interamente in italiano, anche quando il materiale fornito contiene testo inglese. Conserva i nomi propri, gli identificativi e le etichette richieste dal formato. Riporta le citazioni letterali e le scritte visibili così come compaiono nella fonte.

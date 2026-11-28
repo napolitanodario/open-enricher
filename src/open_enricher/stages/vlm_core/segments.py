@@ -206,6 +206,40 @@ def _scene_prompt(
     return prompt
 
 
+def _read_visual_fields(model: Any, processor: Any, clip: Path, config: MetadataConfig, language: str) -> str:
+    """Collect evidence from the same clip when both free-form JSON responses are unusable."""
+    questions = {
+        "description": "Describe what is visible in one short sentence.",
+        "subjects_and_objects": "List up to three visible people, objects or settings, one per line.",
+        "actions": "List up to three visible actions or movements, one per line.",
+        "camera_and_shot": "Describe the framing and camera movement in one short phrase.",
+        "lighting_and_color": "Describe the lighting and colors in one short phrase.",
+        "on_screen_text": "Copy at most one short, clearly readable example of on-screen text in its original language.",
+    }
+    fields = {}
+    for field, question in questions.items():
+        empty_instruction = ("Describe a blank screen if that is all the frames show." if field == "description"
+                             else "Write NONE if nothing is visible for this field.")
+        prompt = language_prompt(
+            f"{question} Use only the current frames. Return plain text without labels, JSON or a code block. "
+            + empty_instruction + " Write descriptions in {{LANGUAGE}}.",
+            language,
+        )
+        answer = extract_metadata(model, processor, clip, replace(config, prompt=prompt, max_new_tokens=100)).strip()
+        if not answer or answer.startswith(("{", "[", "```")):
+            raise ValueError(f"Invalid visual field response for {field}")
+        if answer.rstrip(".").upper() == "NONE":
+            answer = ""
+        if field == "description" and not answer:
+            raise ValueError("Missing visual description after field recovery")
+        if field in ("subjects_and_objects", "actions", "on_screen_text"):
+            lines = [re.sub(r"^\s*(?:[-*•]|\d+[.)])\s+", "", s).strip() for s in answer.splitlines() if s.strip()]
+            fields[field] = lines[:1 if field == "on_screen_text" else 3]
+        else:
+            fields[field] = answer
+    return json.dumps(fields, ensure_ascii=False)
+
+
 def _clip_generation(
     video_path: Path,
     start: float,
@@ -215,6 +249,7 @@ def _clip_generation(
     window_cfg: MetadataConfig,
     *,
     require_visual_json: bool = False,
+    language: str = "en",
     frame_spans: list[dict[str, Any]] | None = None,
     video_filename: str = "",
     experiment_id: str = "",
@@ -268,9 +303,15 @@ def _clip_generation(
                 ),
                 max_new_tokens=max(window_cfg.max_new_tokens, 600),
             )
+            first_response = raw
             raw = extract_metadata(model, processor, clip, retry_cfg)
             if not (_parse_object(raw) or {}).get("description"):
-                raise ValueError(f"Missing structured visual description for window {scene_index} after retry")
+                logger.warning("Reading visual fields individually for window %s after two invalid JSON responses", scene_index)
+                if frame_spans and frame_spans[-1].get("window") == scene_index:
+                    frame_spans[-1]["visual_recovery"] = {
+                        "method": "individual_fields", "invalid_responses": [first_response, raw],
+                    }
+                raw = _read_visual_fields(model, processor, clip, window_cfg, language)
         return raw
 
 
@@ -454,6 +495,7 @@ def run_segmented(
                             processor,
                             window_cfg,
                             require_visual_json=extract_visual and not continue_on_error,
+                            language=language,
                             frame_spans=frame_spans,
                             video_filename=video_filename,
                             experiment_id=experiment_id,

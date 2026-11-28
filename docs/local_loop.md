@@ -39,6 +39,17 @@ In `*_dialogue.json` and `*_vlm.json`, each window's `dialogue_exchanges` field
 contains the original ASR text, timestamps, speaker labels and window-local IDs.
 A silent window or an interval without a valid selection has an empty list.
 
+`13-full-visual-no-exchanges` keeps the same upstream stages, dialogue summaries
+and three-window history. The narrator receives the VLM's complete description,
+subjects, actions, camera, lighting and visible text for the current window.
+Selected transcript exchanges remain archived for inspection and are omitted
+from the narrator's current and previous inputs. `06-memory-2-240s` uses the
+standard 06 pipeline with four-minute windows and its original two-window VLM memory.
+
+For fresh extraction followed by separately scheduled API scoring, pass
+`--no-cache --force --defer-evaluation` and use a separate runs and outputs
+directory for each experiment. The model weights can be shared across runs.
+
 Each window also has JPEGs in
 `runs/local/_cache/<video>/frames/13-narrate-exchanges/scene_XX/`.
 The archived `<video>_vlm_frames.json` lists each image, its clip index and its
@@ -52,8 +63,11 @@ python -m open_enricher --only 13-narrate-exchanges --video suits_s01e02.mkv
 ```
 
 WhisperX transcribes the selected audio track in its spoken language and saves
-the language code in `*_audio_language.json`. Italian audio yields Italian plot
-summaries, scene descriptions and free-text RecSys fields. JSON keys and the
+the language code in `*_audio_language.json`. The generation prompts request
+Italian summaries, scene descriptions and free-text RecSys fields for Italian
+audio, and English for English audio. The text models receive the language
+instruction both in the system message and after the evidence in the user
+message, including when repairing a profile. JSON keys and the
 controlled labels for primary genre, pacing and target age group stay in English.
 Selected ASR lines and on-screen quotations retain their source wording.
 Both API evaluations use Italian for consistently Italian metadata and English otherwise.

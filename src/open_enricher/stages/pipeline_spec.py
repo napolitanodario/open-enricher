@@ -93,6 +93,9 @@ class PipelineSpec:
     checkpoints: Checkpoints = Checkpoints()
     narration_context_scenes: int = DEFAULT_NARRATION_CONTEXT_SCENES
     select_dialogue_exchanges: bool = False
+    # The dialogue stage can still select exchanges. This option changes only
+    # the narrator's inputs, leaving upstream summary generation comparable.
+    narrate_full_visual_without_exchanges: bool = False
 
     def allocation_mode(self) -> str | None:
         """
@@ -337,6 +340,9 @@ def load_pipeline_spec(path: Path | None = None) -> PipelineSpec:
     exchanges = _require_bool("select_dialogue_exchanges", data.get("select_dialogue_exchanges"))
     if exchanges and not narrate:
         raise ValueError("select_dialogue_exchanges requires narrate_from_visual")
+    full_visual = _require_bool("narrate_full_visual_without_exchanges", data.get("narrate_full_visual_without_exchanges"))
+    if full_visual and not narrate:
+        raise ValueError("narrate_full_visual_without_exchanges requires narrate_from_visual")
     context = data.get("narration_context_scenes", DEFAULT_NARRATION_CONTEXT_SCENES)
     if type(context) is not int or context < 0:
         raise ValueError("narration_context_scenes must be a non-negative integer")
@@ -353,6 +359,7 @@ def load_pipeline_spec(path: Path | None = None) -> PipelineSpec:
         narrate_from_visual=narrate,
         narration_context_scenes=context,
         select_dialogue_exchanges=exchanges,
+        narrate_full_visual_without_exchanges=full_visual,
         features=_load_features(data.get("features")),
         frame_allocation=_load_allocation(data.get("frame_allocation")),
         budgets=_load_budgets(data.get("budgets")),

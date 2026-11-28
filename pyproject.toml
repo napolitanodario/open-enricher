@@ -22,7 +22,7 @@ dependencies = [
 [project.optional-dependencies]
 # Optional attention backend. Install only when the GPU stack supports it.
 flash-attn = ["flash-attn"]
-# External metadata evaluator (Cursor SDK / Grok). Not required for the local GPU pipeline.
+# Optional Cursor SDK for the alternative Grok evaluator. Codex uses the installed CLI.
 evaluation = ["cursor-sdk"]
 
 [project.scripts]

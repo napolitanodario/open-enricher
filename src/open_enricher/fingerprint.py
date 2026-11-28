@@ -85,6 +85,7 @@ def settings_hash(spec: PipelineSpec, *, stages: tuple[str, ...] | None = None) 
         "narrate_from_visual": spec.narrate_from_visual,
         "narration_context_scenes": spec.narration_context_scenes,
         "select_dialogue_exchanges": spec.select_dialogue_exchanges,
+        "narrate_full_visual_without_exchanges": spec.narrate_full_visual_without_exchanges,
         "frame_allocation": spec.frame_allocation,
         "features": asdict(spec.features),
         "budgets": asdict(spec.budgets),

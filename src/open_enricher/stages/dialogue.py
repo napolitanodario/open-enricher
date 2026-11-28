@@ -102,7 +102,7 @@ def _plot_messages(transcript: str, *, sampled: bool, language: str = "en") -> l
         {
             "role": "user",
             "content": fill_prompt(
-                load_prompt("plot_user_prompt.md"),
+                language_prompt(load_prompt("plot_user_prompt.md"), language),
                 {"SAMPLING_NOTE": _sampling_note(sampled), "TRANSCRIPT": transcript},
             ),
         },
@@ -127,7 +127,7 @@ def _scene_messages(
         {
             "role": "user",
             "content": fill_prompt(
-                load_prompt("scene_dialogue_user_prompt.md"),
+                language_prompt(load_prompt("scene_dialogue_user_prompt.md"), language),
                 {
                     "START": _clock(start),
                     "END": _clock(end),

@@ -103,7 +103,7 @@ def load_progress() -> list[dict[str, Any]]:
 
 
 def archive_matches_sources(
-    experiment_id: str, videos: list[str], step: str, *, settings: str
+    experiment_id: str, videos: list[str], step: str, *, settings: str, provider: str | None = None
 ) -> bool:
     """Require the latest step, archived attempt, source bytes and settings to agree."""
     from open_enricher import storage
@@ -118,6 +118,8 @@ def archive_matches_sources(
         {},
     )
     if not videos or row.get("status") != "ok" or row.get("settings_hash") != settings:
+        return False
+    if provider is not None and row.get("provider") != provider:
         return False
     receipts = {item.get("video"): item for item in row.get("results", []) if isinstance(item, dict)}
     for video in videos:

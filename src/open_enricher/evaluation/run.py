@@ -355,7 +355,7 @@ def evaluate_videos(
 
     Args:
         videos: Video filenames to score.
-        provider_name: Registry key (default ``cursor``).
+        provider_name: Registry key (default ``codex``).
         with_synopsis: Retained for caller compatibility. Both tasks require the reference synopsis.
         synopsis_dir: Optional synopsis directory override.
         experiment_id: Optional experiment archive id.

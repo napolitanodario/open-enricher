@@ -3,6 +3,8 @@
 import json
 from types import SimpleNamespace
 
+import pytest
+
 from open_enricher import storage
 from open_enricher.experiments.config import VARIANTS_DIR
 from open_enricher.language import metadata_language
@@ -10,6 +12,11 @@ from open_enricher.runner import collect_artifacts
 from open_enricher.stages import dialogue, vlm
 from open_enricher.stages.dialogue_exchanges import resolve_exchanges
 from open_enricher.stages.llm import LLMStage
+from open_enricher.stages.llm_core.prompt import (
+    profile_repair_user_prompt,
+    profile_system_prompt,
+    profile_user_prompt,
+)
 from open_enricher.stages.pipeline_spec import load_pipeline_spec
 from open_enricher.stages.vlm_core import segments
 from open_enricher.timings import TimingRecorder
@@ -60,7 +67,7 @@ def test_italian_exchange_variant_from_asr_to_narration(tmp_path, monkeypatch):
     selectors = []
 
     def generate(model, tokenizer, device, messages, **kwargs):
-        assert "in Italian" in messages[0]["content"]
+        assert all("interamente in italiano" in message["content"] for message in messages)
         if "EXCHANGES:" in messages[0]["content"]:
             selectors.append(messages[1]["content"])
             if len(selectors) == 2:
@@ -78,7 +85,7 @@ def test_italian_exchange_variant_from_asr_to_narration(tmp_path, monkeypatch):
 
     def generate_visual(video_path, start, end, model, processor, cfg, **kwargs):
         assert cfg.max_frames == 40
-        assert "in Italian" in cfg.prompt
+        assert "interamente in italiano" in cfg.prompt
         assert "Battuta" not in cfg.prompt and "Riassunto" not in cfg.prompt
         return '{"description":"Una scrivania.","actions":["Si alza."]}'
 
@@ -93,7 +100,7 @@ def test_italian_exchange_variant_from_asr_to_narration(tmp_path, monkeypatch):
     prompts = []
 
     def narrate(model, tokenizer, messages, **kwargs):
-        assert "in Italian" in messages[0]["content"]
+        assert all("interamente in italiano" in message["content"] for message in messages)
         prompts.append(messages[1]["content"])
         return "Descrizione della scena."
 
@@ -107,3 +114,18 @@ def test_italian_exchange_variant_from_asr_to_narration(tmp_path, monkeypatch):
     payload = json.loads((storage.get_output_dir("vlm") / f"{video}_vlm.json").read_text())
     assert payload["narration_context_scenes"] == 3
     assert payload["scene_timeline"][0]["visual_description"] == "Una scrivania."
+
+
+@pytest.mark.parametrize("language,rule", [("it", "interamente in italiano"), ("en", "entirely in English")])
+def test_language_after_the_evidence_in_summaries_and_profile(language, rule):
+    evidence = "SPEAKER_01: Keep the literal {{LANGUAGE}} as spoken."
+    for messages in (dialogue._plot_messages(evidence, sampled=True, language=language),
+                     dialogue._scene_messages(evidence, start=0, end=12, sampled=False, language=language)):
+        assert rule in messages[0]["content"]
+        user = messages[1]["content"]
+        assert user.index(evidence) < user.index(rule)
+    example = {"recsys_metadata": {"primary_genre": "Comedy", "pacing": "Moderate"}}
+    profile = profile_user_prompt(script_text=evidence, example_structure=example, language=language)
+    assert profile.index(evidence) < profile.index('"Moderate"') < profile.index(rule)
+    assert rule in profile_system_prompt(language)
+    assert rule in profile_repair_user_prompt(error="test", language=language)

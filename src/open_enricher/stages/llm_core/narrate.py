@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from open_enricher.language import language_prompt
@@ -74,7 +75,7 @@ def narration_system_prompt(*, with_exchanges: bool = False, language: str = "en
 
 def narration_user_prompt(
     scene: dict[str, Any], prior: list[dict[str, Any]], *, with_exchanges: bool = False,
-    language: str = "en",
+    full_visual: bool = False, language: str = "en",
 ) -> str:
     """
     Return the user message for one scene narration.
@@ -84,25 +85,31 @@ def narration_user_prompt(
             ``subjects_and_objects``, and ``actions``.
         prior: Earlier scenes whose summaries are continuity only.
     """
-    objects = scene.get("subjects_and_objects") or []
-    actions = scene.get("actions") or []
-    object_text = "\n".join(f"- {item}" for item in objects) or "- none listed"
-    action_text = "\n".join(f"- {item}" for item in actions) or "- none listed"
-    template = (
-        "scene_exchange_narration_user_prompt.md" if with_exchanges
-        else "scene_narration_user_prompt.md"
-    )
-    return fill_prompt(
-        load_prompt(template),
-        {
-            "START": str(scene.get("start_time") or ""),
-            "LANGUAGE": "Italian" if language == "it" else "English",
-            "END": str(scene.get("end_time") or ""),
-            "PRIOR": format_prior_summaries(prior, with_exchanges=with_exchanges),
-            "EXCHANGES": (_exchange_text(scene, 2) or "(none selected)") if with_exchanges else "",
-            "SCENE_SUMMARY": str(scene.get("dialogue_description") or "").strip()
-            or "(no dialogue summary)",
-            "OBJECTS": object_text,
-            "ACTIONS": action_text,
-        },
-    )
+    use_exchanges = with_exchanges and not full_visual
+    fields = {
+        "START": str(scene.get("start_time") or ""),
+        "END": str(scene.get("end_time") or ""),
+        "PRIOR": format_prior_summaries(prior, with_exchanges=use_exchanges),
+        "SCENE_SUMMARY": str(scene.get("dialogue_description") or "").strip() or "(no dialogue summary)",
+    }
+    if full_visual:
+        # Before narration, description is the VLM's own sentence. The archived
+        # timeline also preserves it explicitly as visual_description.
+        observations = {
+            "visual_description": scene.get("visual_description") or scene.get("description", ""),
+            **{key: scene.get(key) for key in (
+                "subjects_and_objects", "actions", "camera_and_shot", "lighting_and_color", "on_screen_text"
+            )},
+        }
+        fields["VISUAL"] = json.dumps(observations, ensure_ascii=False)
+        template = "scene_full_visual_narration_user_prompt.md"
+    else:
+        objects = scene.get("subjects_and_objects") or []
+        actions = scene.get("actions") or []
+        fields["OBJECTS"] = "\n".join(f"- {item}" for item in objects) or "- none listed"
+        fields["ACTIONS"] = "\n".join(f"- {item}" for item in actions) or "- none listed"
+        template = "scene_narration_user_prompt.md"
+        if use_exchanges:
+            fields["EXCHANGES"] = _exchange_text(scene, 2) or "(none selected)"
+            template = "scene_exchange_narration_user_prompt.md"
+    return fill_prompt(language_prompt(load_prompt(template), language), fields)

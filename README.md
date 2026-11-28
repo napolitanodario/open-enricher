@@ -17,15 +17,16 @@ python -m venv .venv
 source .venv/bin/activate
 # Install the worker's PyTorch and torchvision builds in this environment.
 pip install -r requirements.txt
-pip install -e '.[evaluation]'
+pip install -e .
 python -m open_enricher.adapters.upstream
 ```
 
 Keep input videos in `dataset/video_inputs/` and reusable weights under
 `dataset/models_cache/`. The encoder setup guide lists the external weights
-and inference implementations. Set `HF_TOKEN` for gated models and
-`CURSOR_API_KEY` for the external evaluator in the worker environment or its
-private `.env`. [Encoder setup](docs/encoders.md) · [Evaluator](docs/evaluator.md)
+and inference implementations. Set `HF_TOKEN` for gated models. The default
+evaluator uses the Codex CLI with a ChatGPT login on the machine running the
+evaluation. Use `codex login status` to check the login. The optional Cursor
+provider uses `CURSOR_API_KEY`. [Encoder setup](docs/encoders.md) · [Evaluator](docs/evaluator.md)
 
 ## Run
 

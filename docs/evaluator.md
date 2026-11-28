@@ -1,6 +1,6 @@
 # External evaluation
 
-The experiment loop evaluates two outputs for each video. Both tasks use the same Cursor SDK provider, model and credentials. Each task gets a fresh one-shot conversation with tools disabled. Both tasks require a nonempty reference synopsis.
+The experiment loop evaluates two outputs for each video. Both tasks use the same selected provider and model. Each task starts a fresh conversation and uses the supplied text and a nonempty reference synopsis. The experiment loop and standalone evaluator default to Codex with an OpenAI model and a ChatGPT login.
 
 | Task | Input sent to the judge | Archived report |
 | --- | --- | --- |
@@ -38,11 +38,16 @@ The existing judge uses five dimensions on a 1–5 scale. Their weights are comp
 
 ## Running the evaluator
 
-Install the evaluation extra with `pip install -e '.[evaluation]'` and configure the existing `CURSOR_API_KEY`. The default model is `grok-4.7`. Set `--model` or `OPEN_ENRICHER_EVAL_MODEL` to override it for both tasks.
+For the default Codex provider, install the Codex CLI and sign in with your ChatGPT account. On a headless machine, run `codex login --device-auth`. Check the active login with `codex login status`. Evaluation uses the subscription under its Codex usage limits. The default model is `gpt-6.2-sol`. Use `--model` or `OPEN_ENRICHER_CODEX_MODEL` to choose another model available to that login. Each call runs in an ephemeral directory, sends the rubric as model instructions, and passes the evidence on standard input. The host rejects turns that invoke a tool. [Codex authentication](https://developers.openai.com/codex/auth/) · [Non-interactive Codex](https://developers.openai.com/codex/noninteractive/)
+
+To select Grok, pass `--provider cursor`, install the evaluation extra with `pip install -e '.[evaluation]'` and set `CURSOR_API_KEY`. The default model is `grok-4.7`. Use `--model` or `OPEN_ENRICHER_EVAL_MODEL` to override it.
 
 ```bash
-# Score both outputs with the reference synopsis.
+# Score both outputs with the default Codex provider and the reference synopsis.
 python -m open_enricher.evaluation --video suits_s01e02.mkv
+
+# Select Grok through Cursor explicitly.
+python -m open_enricher.evaluation --provider cursor --video suits_s01e02.mkv
 
 # Score only scene understanding using an existing experiment archive.
 archive=local-archive/2026-11-24/worktrees/open-enricher

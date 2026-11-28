@@ -1,0 +1,7 @@
+{
+  "experiment_id": "06-memory-2-240s",
+  "title": "Two-window VLM memory with four-minute windows",
+  "interval_seconds": 240,
+  "vlm_memory_scenes": 2,
+  "visual_only": false
+}

@@ -1,0 +1,1 @@
+Write every summary, description, tag and other free-text value entirely in English, including when the supplied evidence contains another language. Preserve proper names, identifiers and required format labels. Copy direct quotations and visible writing exactly as they appear in the source.

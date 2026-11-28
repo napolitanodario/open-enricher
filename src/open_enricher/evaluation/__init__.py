@@ -4,8 +4,9 @@ To score scene understanding and the final RecSys profile, run::
 
     python -m open_enricher.evaluation --video <file>
 
-Providers live under ``evaluation.providers``. The default is Cursor SDK with
-Grok 4.7. The two tasks use independent prompts and reports.
+Providers live under ``evaluation.providers``. The default is Codex with a ChatGPT
+login. Select ``--provider cursor`` to use Grok through the Cursor SDK.
+The two tasks use independent prompts and reports.
 """
 
 from open_enricher.evaluation.score import (

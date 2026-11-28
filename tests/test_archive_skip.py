@@ -232,8 +232,13 @@ def test_evaluation_resume_requires_both_scores_and_current_synopsis(tmp_path, m
     assert not done()
     understanding.write_text(json.dumps({"synopsis_sha256": source_fingerprint(ref)}))
     receipt["understanding_score_sha256"] = source_fingerprint(understanding)
+    event["provider"] = "cursor"
     append_progress(event)
     assert done()
+    assert not archive_matches_sources("variant", [video.name], "evaluation", settings="s", provider="codex")
+    event["provider"] = "codex"
+    append_progress(event)
+    assert archive_matches_sources("variant", [video.name], "evaluation", settings="s", provider="codex")
     ref.write_text("Another cut.")
     assert not done()
     ref.write_text("A reference.")

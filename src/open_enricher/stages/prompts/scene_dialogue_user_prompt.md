@@ -1,4 +1,4 @@
-Summarize only the dialogue from {{START}} to {{END}}. {{SAMPLING_NOTE}}
+Summarize only the dialogue from {{START}} to {{END}} in {{LANGUAGE}}. {{SAMPLING_NOTE}}
 
 {{TRANSCRIPT}}
 

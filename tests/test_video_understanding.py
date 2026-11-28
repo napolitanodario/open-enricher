@@ -54,7 +54,7 @@ def setup_archive(tmp_path, monkeypatch):
 def test_both_tasks_share_provider_and_keep_independent_evidence(setup_archive, tmp_path):
     folder, provider, factory = setup_archive
     provider.complete.side_effect = [json.dumps({"dimensions": {}, "summary": "RecSys"}), json.dumps(grade())]
-    row, = run.evaluate_videos([VIDEO], api_key="test-key", model="custom", synopsis_dir=tmp_path,
+    row, = run.evaluate_videos([VIDEO], provider_name="cursor", api_key="test-key", model="custom", synopsis_dir=tmp_path,
                                experiment_id="08")
     factory.assert_called_once_with("cursor", api_key="test-key", model="custom")
     recsys_call, understanding_call = provider.complete.call_args_list

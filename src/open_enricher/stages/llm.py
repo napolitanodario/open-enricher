@@ -14,7 +14,7 @@ from pydantic import ValidationError
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 from open_enricher import storage
-from open_enricher.language import language_prompt, metadata_language
+from open_enricher.language import metadata_language
 from open_enricher.logging_setup import get_logger
 from open_enricher.stages.llm_core.narrate import (
     narration_system_prompt,
@@ -166,7 +166,9 @@ class LLMStage:
             Copies of ``scenes`` whose ``description`` is the narration.
             The VLM sentence is kept on ``visual_description``.
         """
-        system = narration_system_prompt(with_exchanges=spec.select_dialogue_exchanges, language=language)
+        full_visual = spec.narrate_full_visual_without_exchanges
+        with_exchanges = spec.select_dialogue_exchanges and not full_visual
+        system = narration_system_prompt(with_exchanges=with_exchanges, language=language)
         rewritten: List[Dict[str, Any]] = []
         for index, scene in enumerate(scenes):
             prior = previous_scene_summaries(
@@ -175,7 +177,7 @@ class LLMStage:
             messages = [
                 {"role": "system", "content": system},
                 {"role": "user", "content": narration_user_prompt(
-                    scene, prior, with_exchanges=spec.select_dialogue_exchanges, language=language
+                    scene, prior, with_exchanges=with_exchanges, full_visual=full_visual, language=language
                 )},
             ]
             logger.info(
@@ -310,12 +312,13 @@ class LLMStage:
 
             script_text = json.dumps(metadata, separators=(",", ":"), ensure_ascii=False)
             messages = [
-                {"role": "system", "content": language_prompt(profile_system_prompt(), language)},
+                {"role": "system", "content": profile_system_prompt(language)},
                 {
                     "role": "user",
                     "content": profile_user_prompt(
                         script_text=script_text,
                         example_structure=example_structure,
+                        language=language,
                     ),
                 },
             ]
@@ -338,7 +341,7 @@ class LLMStage:
                     messages.append(
                         {
                             "role": "user",
-                            "content": profile_repair_user_prompt(error=err),
+                            "content": profile_repair_user_prompt(error=err, language=language),
                         }
                     )
 

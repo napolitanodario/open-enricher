@@ -27,7 +27,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Score RecSys profiles and scene-level video understanding with an external evaluator "
-            "(Cursor SDK / Grok by default). Not part of the local GPU pipeline."
+            "(Codex with a ChatGPT login by default)."
         )
     )
     parser.add_argument(

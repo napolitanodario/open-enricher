@@ -19,3 +19,5 @@ Hard limits, which override any longer list in the metadata:
 
 Populate this exact JSON structure:
 {{EXAMPLE_STRUCTURE}}
+
+Use the English vocabulary listed above for primary_genre, pacing and target_age_group. Write sub_genres, mood, semantic_tags, main_topics, viewer_interests, visual_style and narrative_hook in {{LANGUAGE}}.

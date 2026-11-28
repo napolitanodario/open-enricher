@@ -1,0 +1,10 @@
+{
+  "experiment_id": "13-full-visual-no-exchanges",
+  "title": "Narration from full visual observations and dialogue summaries",
+  "interval_seconds": 240,
+  "visual_only": true,
+  "narrate_from_visual": true,
+  "narration_context_scenes": 3,
+  "select_dialogue_exchanges": true,
+  "narrate_full_visual_without_exchanges": true
+}

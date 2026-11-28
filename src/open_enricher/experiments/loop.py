@@ -2,7 +2,7 @@
 
 For each pipeline variant JSON, point the process at that spec, run the
 in-process enricher on the configured videos, archive artifacts under
-``runs/local/<experiment_id>/``, score the profiles and scene timelines with the Cursor SDK
+``runs/local/<experiment_id>/``, score the profiles and scene timelines with the default
 evaluator, and continue to the next variant. No deploy, HTTP client, Colab,
 Kaggle, or Google Drive is involved.
 """
@@ -15,6 +15,8 @@ import os
 import uuid
 from pathlib import Path
 from typing import Any
+
+from open_enricher.evaluation.providers import DEFAULT_PROVIDER
 
 from open_enricher.experiments.archive import (
     append_progress,
@@ -103,7 +105,7 @@ def _write_stub_experiment_md(
         experiment_id: Stable experiment id.
         variant: Cleaned variant dict.
         video_results: Per-video pipeline summaries.
-        evaluation_results: Per-video Cursor evaluator status dicts.
+        evaluation_results: Per-video evaluator status dicts.
         evaluation_error: Error from the evaluator when it could not start.
 
     Returns:
@@ -132,7 +134,7 @@ def _write_stub_experiment_md(
         )
     lines.extend(["", "## Quality", ""])
     if evaluation_error:
-        lines.append(f"Cursor evaluation failed to start: {evaluation_error}")
+        lines.append(f"Evaluation failed to start: {evaluation_error}")
     elif evaluation_results:
         for row in evaluation_results:
             lines.append(f"- `{row['video']}`")
@@ -189,7 +191,7 @@ def _evaluate_experiment(
     videos: list[str],
 ) -> list[dict[str, Any]]:
     """
-    Score archived profiles and scene timelines with the same Cursor SDK provider.
+    Score archived profiles and scene timelines with the default provider.
 
     Fidelity is judged against ``synopsis/<video>_summary.txt``. A missing
     synopsis fails that video; there is no fallback to model memory.
@@ -201,7 +203,6 @@ def _evaluate_experiment(
     Returns:
         Per-video statuses and separate RecSys and video understanding reports.
     """
-    from open_enricher.evaluation.providers import DEFAULT_PROVIDER
     from open_enricher.evaluation.run import evaluate_videos
 
     logger.info(
@@ -224,9 +225,10 @@ def run_one_experiment(
     stages: tuple[str, ...] = PIPELINE_STAGES,
     use_cache: bool = True,
     skip_done: bool = True,
+    defer_evaluation: bool = False,
 ) -> dict[str, Any]:
     """
-    Run the full local pipeline for one variant, then score it with Cursor.
+    Run the full local pipeline for one variant, then score it with the default provider.
 
     Args:
         variant_path: Path to the variant JSON file.
@@ -252,7 +254,7 @@ def run_one_experiment(
         experiment_id, videos, "archived", settings=settings
     )
     evaluation_done = pipeline_done and archive_matches_sources(
-        experiment_id, videos, "evaluation", settings=settings
+        experiment_id, videos, "evaluation", settings=settings, provider=DEFAULT_PROVIDER
     )
     if pipeline_done and evaluation_done:
         logger.info(f"Skipping {experiment_id}: already archived and evaluated")
@@ -373,6 +375,18 @@ def run_one_experiment(
             }
         )
 
+    if defer_evaluation:
+        _write_stub_experiment_md(exp_dir, experiment_id, variant, video_results)
+        return {
+            "experiment_id": experiment_id,
+            "status": "metadata_complete" if all(
+                row.get("status") in {"success", "degraded"} for row in video_results
+            ) else "error",
+            "results": video_results,
+            "evaluation": [],
+            "runs_dir": str(exp_dir),
+        }
+
     evaluation_results: list[dict[str, Any]] = []
     evaluation_error: str | None = None
     if evaluation_done:
@@ -400,7 +414,7 @@ def run_one_experiment(
                 "step": "evaluation",
                 "settings_hash": settings,
                 "status": "ok" if eval_ok else "error",
-                "provider": "cursor",
+                "provider": DEFAULT_PROVIDER,
                 "uses_synopsis": True,
                 "detail": evaluation_error,
                 "results": [
@@ -458,6 +472,7 @@ def run_loop(
     stages: tuple[str, ...] = PIPELINE_STAGES,
     use_cache: bool = True,
     skip_done: bool = True,
+    defer_evaluation: bool = False,
 ) -> list[dict[str, Any]]:
     """
     Run selected variants in sequence on the local GPU host.
@@ -515,6 +530,7 @@ def run_loop(
                 stages=stages,
                 use_cache=use_cache,
                 skip_done=skip_done,
+                defer_evaluation=defer_evaluation,
             )
         )
 
@@ -559,6 +575,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Subset of stages to run. Default: audio dialogue vlm llm.",
     )
     parser.add_argument(
+        "--defer-evaluation",
+        action="store_true",
+        help="Archive metadata now and leave both external evaluations for a separate job.",
+    )
+    parser.add_argument(
         "--no-cache",
         action="store_true",
         help="Do not restore or update the shared audio cache.",
@@ -600,6 +621,7 @@ def main(argv: list[str] | None = None) -> None:
         stages=stages,
         use_cache=not args.no_cache,
         skip_done=not args.force,
+        defer_evaluation=args.defer_evaluation,
     )
 
 

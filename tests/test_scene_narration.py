@@ -56,3 +56,19 @@ def test_narration_prompt_grounds_the_current_scene() -> None:
     assert "speaking" in text
     assert "Mike files the patent." in text
     assert "00:10:00" in text
+
+
+def test_full_visual_prompt_uses_all_current_visual_fields_and_only_prior_summaries():
+    scenes = _scenes()
+    prior, current = scenes[:2], scenes[2]
+    for scene in scenes:
+        scene["dialogue_exchanges"] = [[{"line_id": 1, "text": "VERBATIM_EXCHANGE"}]]
+    prior[0]["description"] = "PRIOR_VISUAL"
+    current.update(description="The judge closes the file.", camera_and_shot="tracking shot",
+                   lighting_and_color="amber light", on_screen_text=["COURT ADJOURNED"])
+    prompt = narration_user_prompt(current, prior, full_visual=True)
+    for evidence in ("closes the file", "courtroom", "speaking", "tracking shot",
+                     "amber light", "COURT ADJOURNED", "denies the injunction",
+                     "Mike files the patent", "Harvey confronts Mike"):
+        assert evidence in prompt
+    assert "VERBATIM_EXCHANGE" not in prompt and "PRIOR_VISUAL" not in prompt

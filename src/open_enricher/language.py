@@ -6,6 +6,7 @@ import json
 import os
 
 from open_enricher import storage
+from open_enricher.stages.prompt_load import load_prompt
 
 
 def requested_audio_language() -> str | None:
@@ -23,12 +24,7 @@ def metadata_language(video: str) -> str:
 
 
 def language_prompt(template: str, language: str) -> str:
-    """Apply the output language to instructions before inserting any source text."""
+    """End the instructions in the target language before inserting the evidence verbatim."""
     prompt = template.replace("{{LANGUAGE}}", "Italian" if language == "it" else "English")
-    if language == "it":
-        prompt += (
-            "\n\nWrite all descriptive text and free-text values in Italian. Preserve JSON keys, "
-            "required labels, speaker IDs and proper names. Copy quotations and readable on-screen "
-            "text in their original language."
-        )
-    return prompt
+    rule = load_prompt("output_language_it.md" if language == "it" else "output_language_en.md")
+    return f"{prompt.rstrip()}\n\n{rule}"

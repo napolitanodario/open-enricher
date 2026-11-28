@@ -5,7 +5,7 @@ audio (WhisperX) -> dialogue (Qwen3-8B plot, then per-interval descriptions) ->
 vlm (Qwen3-VL) -> llm (VideoProfile).
 
 Scoring is separate: ``python -m open_enricher.evaluation`` judges scene understanding and RecSys profiles
-with an external provider (Cursor SDK / Grok by default).
+with an external provider (Codex with a ChatGPT login by default).
 
 Experiment variants under ``open_enricher.experiments.variants`` are executed
 in sequence by ``python -m open_enricher``.
